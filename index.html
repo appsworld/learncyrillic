@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyrillic Space Defense</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        #starfield {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #000428 0%, #004e92 100%);
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        #gameContainer {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #00ff00;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px #00ff00; }
+            to { text-shadow: 0 0 30px #00ff00, 0 0 40px #00ff00; }
+        }
+
+        #stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .stat-box {
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        #menuScreen, #gameScreen, #learningScreen {
+            display: none;
+            width: 100%;
+            text-align: center;
+        }
+
+        #menuScreen.active, #gameScreen.active, #learningScreen.active {
+            display: block;
+        }
+
+        #learningScreen {
+            padding-bottom: 50px;
+        }
+
+        .menu-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            margin: 10px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .menu-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #gameArea {
+            position: relative;
+            height: 500px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid #00ff00;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .asteroid {
+            position: absolute;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-size: 2.5em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transform-origin: center;
+        }
+
+        .asteroid::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: translate(-50%, -50%) rotate(45deg);
+            animation: trail 1s infinite;
+        }
+
+        @keyframes trail {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .asteroid:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(245, 87, 108, 0.8);
+        }
+
+        .asteroid.correct {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            animation: correctPulse 0.5s;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .asteroid.wrong {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff0000 100%);
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        #answerOptions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .answer-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            color: white;
+            padding: 15px 25px;
+            font-size: 1.5em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .answer-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .answer-btn.playing {
+            animation: soundWave 0.6s;
+            background: linear-gradient(135deg, #ff6b9d 0%, #c471ed 100%);
+        }
+
+        @keyframes soundWave {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255, 107, 157, 0.8); }
+            50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(196, 113, 237, 0.8); }
+            75% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255, 107, 157, 0.8); }
+        }
+
+        #learningGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto 50px;
+        }
+
+        .letter-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00ff00;
+            padding: 20px;
+            border-radius: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .letter-card:hover {
+            background: rgba(0, 255, 0, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .letter-card.playing {
+            background: rgba(0, 255, 255, 0.3);
+            animation: pulse 0.6s;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(0, 255, 255, 1); }
+        }
+
+        .cyrillic-letter {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #00ff00;
+        }
+
+        .transliteration {
+            font-size: 1.5em;
+            color: #fff;
+        }
+
+        .pronunciation {
+            font-size: 1em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        #message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 0 0 20px currentColor;
+            z-index: 100;
+            display: none;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        #progressBar {
+            width: 100%;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00ff00;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #progressFill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00 0%, #00ffff 100%);
+            width: 0%;
+            transition: width 0.5s;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid #fff;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            transition: all 0.3s;
+            z-index: 20;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #earth {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle at 30% 30%, #4169e1, #191970);
+            border-radius: 50%;
+            box-shadow: 0 0 100px rgba(65, 105, 225, 0.8), inset -25px -25px 40px rgba(0, 0, 0, 0.5);
+            animation: rotate 20s linear infinite;
+        }
+
+        #earth::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 65% 15%, transparent 0%, rgba(255, 255, 255, 0.1) 30%, transparent 60%);
+            border-radius: 50%;
+        }
+
+        #earth::after {
+            content: '🌍';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+        }
+
+        @keyframes rotate {
+            from { transform: translateX(-50%) rotate(0deg); }
+            to { transform: translateX(-50%) rotate(360deg); }
+        }
+
+        .danger-zone {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(to top, rgba(255, 0, 0, 0.3), transparent);
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ffff00;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        @keyframes particleAnim {
+            to {
+                transform: translate(var(--x), var(--y));
+                opacity: 0;
+            }
+        }
+
+        .sound-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            border-radius: 20px;
+            display: none;
+            z-index: 100;
+            font-size: 1.1em;
+        }
+
+        .sound-indicator.active {
+            display: block;
+            animation: soundPulse 0.8s infinite;
+        }
+
+        @keyframes soundPulse {
+            0%, 100% { 
+                transform: scale(1); 
+                background: rgba(0, 255, 255, 0.2);
+                border-color: #00ffff;
+            }
+            50% { 
+                transform: scale(1.05); 
+                background: rgba(255, 107, 157, 0.3);
+                border-color: #ff6b9d;
+                box-shadow: 0 0 15px rgba(255, 107, 157, 0.6);
+            }
+        }
+
+        .sound-hint {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8em;
+            color: #00ffff;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .answer-btn:hover .sound-hint {
+            opacity: 1;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 200;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1f1c2c 0%, #928dab 100%);
+            margin: auto;
+            padding: 30px;
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            animation: slideIn 0.5s forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-content h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .modal-content p {
+            font-size: 1.2em;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .modal-button {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 0.9em;
+            color: #aaa;
+            font-weight: bold;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .speed-btn, .mode-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #555;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 0.8em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 50px;
+        }
+
+        .speed-btn:hover, .mode-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #777;
+        }
+
+        .speed-btn.active, .mode-btn.active {
+            background: linear-gradient(135deg, #00ff00 0%, #00ffff 100%);
+            border-color: #00ff00;
+            color: #000;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        .speed-btn[data-speed="slow"] { border-color: #4CAF50; }
+        .speed-btn[data-speed="normal"] { border-color: #2196F3; }
+        .speed-btn[data-speed="fast"] { border-color: #FF9800; }
+        .speed-btn[data-speed="extreme"] { border-color: #F44336; }
+
+        .mode-btn[data-mode="1"] { border-color: #4CAF50; }
+        .mode-btn[data-mode="2"] { border-color: #FF9800; }
+        .mode-btn[data-mode="3"] { border-color: #F44336; }
+
+        .asteroid.multi-char {
+            font-size: 1.8em;
+            padding: 12px 20px;
+            min-width: 80px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .asteroid.multi-char::before {
+            display: none;
+        }
+
+        .progress-indicator {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid #00ffff;
+            border-radius: 15px;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            color: #00ffff;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="starfield"></div>
+    
+    <div id="gameContainer">
+        <div id="header">
+            <h1>Cyrillic Space Defense</h1>
+        </div>
+
+        <div id="menuScreen" class="active">
+            <div style="text-align: center;">
+                <h2 style="margin-bottom: 30px; font-size: 2em;">Learn Cyrillic!</h2>
+                <p style="margin-bottom: 20px; font-size: 1.2em;">Defend Earth by matching Cyrillic letters with their sounds!</p>
+                <p style="margin-bottom: 30px; font-size: 1em; color: #aaa;">Unlock 2-character and 3-character combinations as you progress!</p>
+                <button class="menu-button" onclick="startLearning()"> Learn First</button>
+                <button class="menu-button" onclick="startEasyGame()"> Easy Mode</button>
+                <button class="menu-button" onclick="startHardGame()"> Challenge Mode</button>
+                <div style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                    <p> Adjustable falling speed: Slow → Normal → Fast → Extreme</p>
+                    <p> Progressive difficulty: Single letters → 2-char combos → 3-char combos</p>
+                </div>
+                <p style="margin-top: 20px; color: #888;"> Tip: Type answers with keyboard or click buttons to hear speech pronunciation!</p>
+            </div>
+        </div>
+
+        <div id="learningScreen">
+            <button class="back-btn" onclick="showMenu()">← Back</button>
+            <div style="text-align: center; margin-top: 60px;">
+                <h2 style="margin-bottom: 20px;">Click each letter to hear speech pronunciation!</h2>
+                <p style="margin-bottom: 30px; color: #aaa;">Learn the natural sound each letter makes with speech synthesis</p>
+            </div>
+            <div id="learningGrid"></div>
+        </div>
+
+        <div id="gameScreen">
+            <button class="back-btn" onclick="showMenu()">← Back</button>
+            <div style="margin-top: 60px;">
+                <div id="stats">
+                    <div class="stat-box">Score: <span id="score">0</span></div>
+                    <div class="stat-box">Lives: <span id="lives">3</span></div>
+                    <div class="stat-box">Streak: <span id="streak">0</span></div>
+                    <div class="stat-box">Level: <span id="level">1</span></div>
+                </div>
+                
+                <div class="control-panel">
+                    <div class="control-group">
+                        <div class="control-label">Speed</div>
+                        <div class="control-buttons">
+                            <button class="speed-btn" data-speed="slow" onclick="changeSpeed('slow')">Slow</button>
+                            <button class="speed-btn active" data-speed="normal" onclick="changeSpeed('normal')">Normal</button>
+                            <button class="speed-btn" data-speed="fast" onclick="changeSpeed('fast')">Fast</button>
+                            <button class="speed-btn" data-speed="extreme" onclick="changeSpeed('extreme')">Extreme</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <div class="control-label">Characters</div>
+                        <div class="control-buttons">
+                            <button class="mode-btn active" data-mode="1" onclick="changeCharacterMode(1)">1</button>
+                            <button class="mode-btn" data-mode="2" onclick="changeCharacterMode(2)" style="display: none;">2</button>
+                            <button class="mode-btn" data-mode="3" onclick="changeCharacterMode(3)" style="display: none;">3</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="progressBar">
+                    <div id="progressFill"></div>
+                    <div class="progress-indicator">
+                        Mode: <span id="currentMode">Single Letters</span> | Speed: <span id="currentSpeed">Normal</span>
+                        <div style="font-size: 0.7em; margin-top: 2px; color: #aaa;" id="modeHint">
+                            Click character buttons above to switch modes
+                        </div>
+                    </div>
+                </div>
+                <div id="gameArea">
+                    <div class="danger-zone"></div>
+                    <div id="earth"></div>
+                </div>
+                <div id="answerOptions"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message"></div>
+    <div class="sound-indicator" id="soundIndicator">🎵 Voice Loading...</div>
+
+    <div id="gameOverModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2 id="modalTitle"></h2>
+            <p id="modalMessage"></p>
+            <div class="modal-buttons">
+                <button class="modal-button" id="modalPlayAgain">Play Again</button>
+                <button class="modal-button" id="modalBackToMenu">Back to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cyrillic alphabet data
+        const cyrillicData = [
+            { cyrillic: 'А', latin: 'A', sound: 'а', simple: 'ah', phonetic: 'like "a" in father', russianWord: 'автобус' },
+            { cyrillic: 'Б', latin: 'B', sound: 'бэ', simple: 'beh', phonetic: 'like "b" in boy', russianWord: 'банан' },
+            { cyrillic: 'В', latin: 'V', sound: 'вэ', simple: 'veh', phonetic: 'like "v" in voice', russianWord: 'вода' },
+            { cyrillic: 'Г', latin: 'G', sound: 'гэ', simple: 'geh', phonetic: 'like "g" in go', russianWord: 'город' },
+            { cyrillic: 'Д', latin: 'D', sound: 'дэ', simple: 'deh', phonetic: 'like "d" in dog', russianWord: 'дом' },
+            { cyrillic: 'Е', latin: 'E', sound: 'е', simple: 'yeh', phonetic: 'like "ye" in yes', russianWord: 'ель' },
+            { cyrillic: 'Ё', latin: 'YO', sound: 'ё', simple: 'yo', phonetic: 'like "yo" in yolk', russianWord: 'ёж' },
+            { cyrillic: 'Ж', latin: 'ZH', sound: 'жэ', simple: 'zheh', phonetic: 'like "s" in measure', russianWord: 'жук' },
+            { cyrillic: 'З', latin: 'Z', sound: 'зэ', simple: 'zeh', phonetic: 'like "z" in zoo', russianWord: 'зима' },
+            { cyrillic: 'И', latin: 'I', sound: 'и', simple: 'ee', phonetic: 'like "ee" in see', russianWord: 'игра' },
+            { cyrillic: 'Й', latin: 'Y', sound: 'и краткое', simple: 'ee kratkoe', phonetic: 'like "y" in boy', russianWord: 'йогурт' },
+            { cyrillic: 'К', latin: 'K', sound: 'ка', simple: 'kah', phonetic: 'like "k" in kite', russianWord: 'кот' },
+            { cyrillic: 'Л', latin: 'L', sound: 'эль', simple: 'el', phonetic: 'like "l" in love', russianWord: 'лес' },
+            { cyrillic: 'М', latin: 'M', sound: 'эм', simple: 'em', phonetic: 'like "m" in mother', russianWord: 'мама' },
+            { cyrillic: 'Н', latin: 'N', sound: 'эн', simple: 'en', phonetic: 'like "n" in no', russianWord: 'нос' },
+            { cyrillic: 'О', latin: 'O', sound: 'о', simple: 'oh', phonetic: 'like "o" in more', russianWord: 'окно' },
+            { cyrillic: 'П', latin: 'P', sound: 'пэ', simple: 'peh', phonetic: 'like "p" in pet', russianWord: 'папа' },
+            { cyrillic: 'Р', latin: 'R', sound: 'эр', simple: 'er', phonetic: 'rolled "r"', russianWord: 'рука' },
+            { cyrillic: 'С', latin: 'S', sound: 'эс', simple: 'es', phonetic: 'like "s" in sun', russianWord: 'солнце' },
+            { cyrillic: 'Т', latin: 'T', sound: 'тэ', simple: 'teh', phonetic: 'like "t" in tea', russianWord: 'тигр' },
+            { cyrillic: 'У', latin: 'U', sound: 'у', simple: 'oo', phonetic: 'like "oo" in boot', russianWord: 'утка' },
+            { cyrillic: 'Ф', latin: 'F', sound: 'эф', simple: 'ef', phonetic: 'like "f" in fun', russianWord: 'флаг' },
+            { cyrillic: 'Х', latin: 'KH', sound: 'ха', simple: 'khah', phonetic: 'like "ch" in Bach', russianWord: 'хлеб' },
+            { cyrillic: 'Ц', latin: 'TS', sound: 'цэ', simple: 'tseh', phonetic: 'like "ts" in cats', russianWord: 'цирк' },
+            { cyrillic: 'Ч', latin: 'CH', sound: 'чэ', simple: 'cheh', phonetic: 'like "ch" in cheese', russianWord: 'часы' },
+            { cyrillic: 'Ш', latin: 'SH', sound: 'ша', simple: 'shah', phonetic: 'like "sh" in show', russianWord: 'школа' },
+            { cyrillic: 'Щ', latin: 'SHCH', sound: 'ща', simple: 'shchah', phonetic: 'soft "shch"', russianWord: 'щука' },
+            { cyrillic: 'Ъ', latin: 'HARD', sound: 'твёрдый знак', simple: 'hard sign', phonetic: 'hard sign (silent)', russianWord: 'объект' },
+            { cyrillic: 'Ы', latin: 'YI', sound: 'ы', simple: 'ih', phonetic: 'like "i" in bit (deeper)', russianWord: 'мыло' },
+            { cyrillic: 'Ь', latin: 'SOFT', sound: 'мягкий знак', simple: 'soft sign', phonetic: 'soft sign (silent)', russianWord: 'соль' },
+            { cyrillic: 'Э', latin: 'EH', sound: 'э', simple: 'eh', phonetic: 'like "e" in pet', russianWord: 'эхо' },
+            { cyrillic: 'Ю', latin: 'YU', sound: 'ю', simple: 'yoo', phonetic: 'like "u" in use', russianWord: 'юг' },
+            { cyrillic: 'Я', latin: 'YA', sound: 'я', simple: 'yah', phonetic: 'like "ya" in yard', russianWord: 'яблоко' }
+        ];
+
+        let gameState = {
+            score: 0,
+            lives: 3,
+            streak: 0,
+            level: 1,
+            currentLetter: null,
+            isPlaying: false,
+            difficulty: 'easy',
+            lettersLearned: new Set(),
+            correctAnswers: 0,
+            currentOptions: [],
+            isTransitioning: false,
+            characterMode: 1,
+            speed: 'normal',
+            availableModes: [1],
+        };
+
+        // Audio state management - Web Speech API only
+        let isPlayingAudio = false;
+        let currentAnimationFrame = null;
+
+        // Create starfield
+        function createStarfield() {
+            const starfield = document.getElementById('starfield');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = star.style.height = Math.random() * 3 + 'px';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starfield.appendChild(star);
+            }
+        }
+
+        // Initialize Web Speech API
+        function initializeWebSpeech() {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                return false;
+            }
+
+            const voices = speechSynthesis.getVoices();
+            console.log('Available voices:', voices.length);
+            
+            if (voices.length === 0) {
+                speechSynthesis.onvoiceschanged = () => {
+                    console.log('Voices loaded:', speechSynthesis.getVoices().length);
+                };
+            }
+            
+            return true;
+        }
+
+        // Generate speech with Web Speech API
+        async function speakWithWebSpeech(text, letter) {
+            return new Promise((resolve) => {
+                if (!('speechSynthesis' in window)) {
+                    resolve(false);
+                    return;
+                }
+
+                speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                const voices = speechSynthesis.getVoices();
+                let selectedVoice = null;
+                
+                const preferredVoices = [
+                    'Google US English', 'Microsoft Zira', 'Microsoft David',
+                    'Samantha', 'Alex', 'Google UK English Female'
+                ];
+                
+                for (const preferred of preferredVoices) {
+                    selectedVoice = voices.find(v => v.name.includes(preferred));
+                    if (selectedVoice) break;
+                }
+                
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+                }
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                    console.log('Using voice:', selectedVoice.name);
+                }
+                
+                utterance.rate = 0.7;
+                utterance.pitch = 1.0;
+                utterance.volume = 0.8;
+                
+                utterance.onend = () => {
+                    console.log('Speech finished');
+                    isPlayingAudio = false;
+                    document.getElementById('soundIndicator').classList.remove('active');
+                    resolve(true);
+                };
+                
+                utterance.onerror = (error) => {
+                    console.error('Speech error:', error);
+                    isPlayingAudio = false;
+                    document.getElementById('soundIndicator').classList.remove('active');
+                    resolve(false);
+                };
+                
+                console.log('Speaking:', text, 'for letter:', letter.cyrillic);
+                speechSynthesis.speak(utterance);
+            });
+        }
+
+        // Show visual pronunciation
+        function showVisualPronunciation(letter) {
+            const message = document.getElementById('message');
+            message.innerHTML = `
+                <div style="font-size: 0.8em; margin-bottom: 10px;">🔊 Letter Sound:</div>
+                <div style="font-size: 1.2em; color: #00ff00;">"${letter.simple}"</div>
+                <div style="font-size: 0.7em; margin-top: 10px; color: #aaa;">${letter.phonetic}</div>
+            `;
+            message.style.color = '#00ffff';
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 2500);
+        }
+
+        // Enhanced natural sound function with Web Speech API
+        async function playNaturalSound(letter) {
+            stopCurrentAudio();
+            
+            if (isPlayingAudio) return;
+            
+            const indicator = document.getElementById('soundIndicator');
+            indicator.classList.add('active');
+            indicator.textContent = ' Speaking...';
+            isPlayingAudio = true;
+            
+            console.log(' Playing sound for:', letter.cyrillic, '=', letter.simple);
+            
+            const success = await speakWithWebSpeech(letter.simple, letter);
+            
+            if (!success) {
+                console.log('Speech failed, showing visual');
+                showVisualPronunciation(letter);
+                isPlayingAudio = false;
+                indicator.classList.remove('active');
+            }
+        }
+
+        // Function to stop any currently playing audio
+        function stopCurrentAudio() {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+            }
+            
+            isPlayingAudio = false;
+            const indicator = document.getElementById('soundIndicator');
+            indicator.classList.remove('active');
+            indicator.textContent = ' Voice Ready!';
+        }
+
+        // Create particle effect
+        function createParticles(x, y, color = '#ffff00') {
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.background = color;
+                
+                const angle = (Math.PI * 2 * i) / 20;
+                const velocity = 50 + Math.random() * 50;
+                particle.style.setProperty('--x', Math.cos(angle) * velocity + 'px');
+                particle.style.setProperty('--y', Math.sin(angle) * velocity + 'px');
+                particle.style.animation = 'particleAnim 0.5s ease-out forwards';
+                
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 500);
+            }
+        }
+
+        // Show message with adjustable duration
+        function showMessage(text, color = '#00ff00', duration = 1500) {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.style.color = color;
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, duration);
+        }
+
+        // Navigation functions
+        function showMenu() {
+            document.getElementById('menuScreen').classList.add('active');
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('learningScreen').classList.remove('active');
+            document.getElementById('gameOverModal').style.display = 'none';
+            gameState.isPlaying = false;
+            
+            stopCurrentAudio();
+            if (currentAnimationFrame) {
+                cancelAnimationFrame(currentAnimationFrame);
+                currentAnimationFrame = null;
+            }
+            
+            document.querySelectorAll('.asteroid').forEach(a => a.remove());
+        }
+
+        function startLearning() {
+            document.getElementById('menuScreen').classList.remove('active');
+            document.getElementById('learningScreen').classList.add('active');
+            populateLearningGrid();
+        }
+
+        function startEasyGame() {
+            gameState.difficulty = 'easy';
+            startGame();
+        }
+
+        function startHardGame() {
+            gameState.difficulty = 'hard';
+            startGame();
+        }
+
+        function startGame() {
+            document.getElementById('menuScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            resetGame();
+            gameState.isPlaying = true;
+            updateDisplays();
+            nextRound();
+        }
+
+        function resetGame() {
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.streak = 0;
+            gameState.level = 1;
+            gameState.correctAnswers = 0;
+            gameState.lettersLearned = new Set();
+            gameState.currentOptions = [];
+            gameState.isTransitioning = false;
+            gameState.characterMode = 1;
+            gameState.availableModes = [1];
+            gameState.speed = 'normal';
+            
+            updateStats();
+            updateProgress();
+            updateDisplays();
+            
+            document.querySelectorAll('.asteroid').forEach(a => {
+                if (currentAnimationFrame) {
+                    cancelAnimationFrame(currentAnimationFrame);
+                }
+                a.remove();
+            });
+        }
+
+        // Learning mode
+        function populateLearningGrid() {
+            const grid = document.getElementById('learningGrid');
+            grid.innerHTML = '';
+            
+            cyrillicData.forEach(letter => {
+                const card = document.createElement('div');
+                card.className = 'letter-card';
+                card.innerHTML = `
+                    <div class="cyrillic-letter">${letter.cyrillic}</div>
+                    <div class="transliteration">${letter.latin}</div>
+                    <div class="pronunciation">${letter.phonetic}</div>
+                `;
+                card.onclick = () => {
+                    if (!isPlayingAudio) {
+                        playNaturalSound(letter);
+                        card.classList.add('playing');
+                        setTimeout(() => card.classList.remove('playing'), 600); 
+                    }
+                };
+                grid.appendChild(card);
+            });
+        }
+
+        // Generate character combinations based on game mode
+        function generateCharacterCombination(mode, letters) {
+            if (mode === 1) {
+                return letters[Math.floor(Math.random() * letters.length)];
+            } else if (mode === 2) {
+                const letter1 = letters[Math.floor(Math.random() * letters.length)];
+                const letter2 = letters[Math.floor(Math.random() * letters.length)];
+                return {
+                    cyrillic: letter1.cyrillic + letter2.cyrillic,
+                    latin: letter1.latin + letter2.latin,
+                    sound: letter1.sound + ' ' + letter2.sound,
+                    simple: letter1.simple + ' ' + letter2.simple,
+                    phonetic: letter1.simple + '-' + letter2.simple,
+                    components: [letter1, letter2]
+                };
+            } else if (mode === 3) {
+                const letter1 = letters[Math.floor(Math.random() * letters.length)];
+                const letter2 = letters[Math.floor(Math.random() * letters.length)];
+                const letter3 = letters[Math.floor(Math.random() * letters.length)];
+                return {
+                    cyrillic: letter1.cyrillic + letter2.cyrillic + letter3.cyrillic,
+                    latin: letter1.latin + letter2.latin + letter3.latin,
+                    sound: letter1.sound + ' ' + letter2.sound + ' ' + letter3.sound,
+                    simple: letter1.simple + ' ' + letter2.simple + ' ' + letter3.simple,
+                    phonetic: letter1.simple + '-' + letter2.simple + '-' + letter3.simple,
+                    components: [letter1, letter2, letter3]
+                };
+            }
+        }
+
+        // Generate wrong options for combinations
+        function generateWrongCombinations(correctCombination, mode, letters) {
+            const wrongOptions = [];
+            const maxAttempts = 50;
+            
+            while (wrongOptions.length < 3) {
+                let attempts = 0;
+                let wrongOption;
+                
+                do {
+                    wrongOption = generateCharacterCombination(mode, letters);
+                    attempts++;
+                } while (
+                    attempts < maxAttempts && 
+                    (wrongOption.latin === correctCombination.latin || 
+                     wrongOptions.some(opt => opt.latin === wrongOption.latin))
+                );
+                
+                if (attempts < maxAttempts) {
+                    wrongOptions.push(wrongOption);
+                }
+            }
+            
+            return wrongOptions;
+        }
+
+        // Check if player has unlocked new character modes
+        function checkModeUnlocks() {
+            const modesUnlocked = gameState.availableModes.length;
+            
+            if (modesUnlocked === 1 && (gameState.streak >= 5 || gameState.correctAnswers >= 20)) {
+                gameState.availableModes.push(2);
+                gameState.characterMode = 2;
+                showMessage('Advanced to 2-Character Combos! (Click "1" button to go back)', '#00ffff', 3000);
+                return true;
+            }
+            
+            if (modesUnlocked === 2 && (gameState.streak >= 10 || gameState.correctAnswers >= 50)) {
+                gameState.availableModes.push(3);
+                gameState.characterMode = 3;
+                showMessage('Advanced to 3-Character Combos! (Click "1" or "2" to go back)', '#ff00ff', 3000);
+                return true;
+            }
+            
+            return false;
+        }
+
+        // Get animation duration based on speed setting
+        function getAnimationDuration() {
+            const baseTime = gameState.difficulty === 'easy' ? 8000 : 5000;
+            const speedMultipliers = {
+                'slow': 1.5,
+                'normal': 1.0,
+                'fast': 0.7,
+                'extreme': 0.4
+            };
+            return baseTime * speedMultipliers[gameState.speed];
+        }
+
+        // Speed control functions
+        function changeSpeed(newSpeed) {
+            gameState.speed = newSpeed;
+            updateSpeedDisplay();
+            updateDisplays();
+            console.log('Speed changed to:', newSpeed);
+        }
+
+        function updateSpeedDisplay() {
+            const speedButtons = document.querySelectorAll('.speed-btn');
+            speedButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.speed === gameState.speed) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Character mode control functions
+        function changeCharacterMode(newMode) {
+            if (gameState.availableModes.includes(newMode)) {
+                gameState.characterMode = newMode;
+                updateModeDisplay();
+                updateDisplays();
+                console.log('Character mode changed to:', newMode);
+            }
+        }
+
+        function updateModeDisplay() {
+            const modeButtons = document.querySelectorAll('.mode-btn');
+            modeButtons.forEach(btn => {
+                btn.classList.remove('active');
+                const mode = parseInt(btn.dataset.mode);
+                
+                if (mode === gameState.characterMode) {
+                    btn.classList.add('active');
+                }
+                
+                if (gameState.availableModes.includes(mode)) {
+                    btn.style.display = 'inline-block';
+                    btn.disabled = false;
+                } else {
+                    btn.style.display = 'none';
+                    btn.disabled = true;
+                }
+            });
+        }
+
+        // Update all display elements
+        function updateDisplays() {
+            updateSpeedDisplay();
+            updateModeDisplay();
+            
+            const modeNames = {1: 'Single Letters', 2: '2-Character Combos', 3: '3-Character Combos'};
+            const speedNames = {slow: 'Slow', normal: 'Normal', fast: 'Fast', extreme: 'Extreme'};
+            
+            const currentModeElement = document.getElementById('currentMode');
+            const currentSpeedElement = document.getElementById('currentSpeed');
+            const modeHintElement = document.getElementById('modeHint');
+            
+            if (currentModeElement) {
+                currentModeElement.textContent = modeNames[gameState.characterMode];
+            }
+            
+            if (currentSpeedElement) {
+                currentSpeedElement.textContent = speedNames[gameState.speed];
+            }
+            
+            if (modeHintElement) {
+                if (gameState.availableModes.length === 1) {
+                    modeHintElement.textContent = 'Get 5 streak or 20 correct to unlock 2-character mode!';
+                } else if (gameState.availableModes.length === 2) {
+                    modeHintElement.textContent = 'Get 10 streak or 50 correct to unlock 3-character mode!';
+                } else {
+                    modeHintElement.textContent = 'All modes unlocked! Click buttons above to switch between modes.';
+                }
+            }
+        }
+
+        // Game logic with improved timing and character combinations
+        function nextRound() {
+            if (!gameState.isPlaying || gameState.isTransitioning) return;
+            
+            gameState.isTransitioning = true;
+            stopCurrentAudio();
+            
+            const gameArea = document.getElementById('gameArea');
+            const asteroids = gameArea.querySelectorAll('.asteroid');
+            asteroids.forEach(a => a.remove());
+            
+            gameState.currentOptions = [];
+            
+            const availableLetters = gameState.difficulty === 'easy' 
+                ? cyrillicData.slice(0, Math.min(10 + gameState.level * 2, cyrillicData.length))
+                : cyrillicData;
+            
+            gameState.currentLetter = generateCharacterCombination(gameState.characterMode, availableLetters);
+            
+            const asteroid = document.createElement('div');
+            asteroid.className = 'asteroid';
+            
+            if (gameState.characterMode > 1) {
+                asteroid.classList.add('multi-char');
+            }
+            
+            asteroid.textContent = gameState.currentLetter.cyrillic;
+            
+            const startX = Math.random() * (gameArea.offsetWidth - 100);
+            asteroid.style.left = startX + 'px';
+            asteroid.style.top = '-50px';
+            
+            const earthRect = document.getElementById('earth').getBoundingClientRect();
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const earthCenterX = earthRect.left + earthRect.width / 2 - gameAreaRect.left;
+            
+            gameArea.appendChild(asteroid);
+            createAnswerOptions();
+            
+            setTimeout(() => {
+                gameState.isTransitioning = false;
+            }, 300);
+            
+            let startTime = null;
+            const duration = getAnimationDuration();
+            const startY = -50;
+            const endY = gameArea.offsetHeight - asteroid.offsetHeight;
+            
+            function animateAsteroid(timestamp) {
+                if (!startTime) startTime = timestamp;
+                if (!gameState.isPlaying) return;
+                
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                
+                const currentY = startY + (endY - startY) * easeProgress;
+                const currentX = startX + (earthCenterX - startX - (asteroid.offsetWidth / 2)) * easeProgress;
+                
+                asteroid.style.top = currentY + 'px';
+                asteroid.style.left = currentX + 'px';
+                
+                if (gameState.characterMode === 1) {
+                    const rotation = easeProgress * 360 * 2;
+                    const scale = 1 + easeProgress * 0.3;
+                    asteroid.style.transform = `rotate(${rotation}deg) scale(${scale})`;
+                } else {
+                    const oscillation = Math.sin(easeProgress * Math.PI * 4) * 3;
+                    const scale = 1 + easeProgress * 0.2;
+                    asteroid.style.transform = `translateX(${oscillation}px) scale(${scale})`;
+                    
+                    const glowIntensity = 0.3 + Math.sin(elapsed * 0.005) * 0.2;
+                    asteroid.style.boxShadow = `0 0 ${20 + glowIntensity * 20}px rgba(240, 147, 251, ${glowIntensity})`;
+                }
+                
+                if (progress >= 1) {
+                    if (gameState.isPlaying && !gameState.isTransitioning) {
+                        handleEarthImpact(asteroid, gameArea, gameAreaRect);
+                    }
+                    return;
+                }
+                
+                currentAnimationFrame = requestAnimationFrame(animateAsteroid);
+            }
+            
+            asteroid.animationId = requestAnimationFrame(animateAsteroid);
+            currentAnimationFrame = asteroid.animationId;
+        }
+
+        function handleEarthImpact(asteroid, gameArea, gameAreaRect) {
+            gameState.isTransitioning = true;
+            
+            const impactX = asteroid.offsetLeft + asteroid.offsetWidth / 2;
+            const impactY = gameArea.offsetHeight - 50;
+            createParticles(
+                gameAreaRect.left + impactX,
+                gameAreaRect.top + impactY,
+                '#ff0000'
+            );
+            
+            gameState.lives--;
+            gameState.streak = 0;
+            updateStats();
+            showMessage('Earth hit! -1 life', '#ff0000');
+            
+            const earth = document.getElementById('earth');
+            earth.style.boxShadow = '0 0 100px rgba(255, 0, 0, 0.8)';
+            setTimeout(() => {
+                earth.style.boxShadow = '0 0 100px rgba(65, 105, 225, 0.8)';
+            }, 500);
+            
+            if (gameState.lives <= 0) {
+                endGame();
+            } else {
+                asteroid.remove();
+                setTimeout(() => {
+                    gameState.isTransitioning = false;
+                    nextRound();
+                }, 1000);
+            }
+        }
+
+        function createAnswerOptions() {
+            const container = document.getElementById('answerOptions');
+            container.innerHTML = '';
+            
+            const availableLetters = gameState.difficulty === 'easy' 
+                ? cyrillicData.slice(0, Math.min(10 + gameState.level * 2, cyrillicData.length))
+                : cyrillicData;
+            
+            let wrongOptions;
+            
+            if (gameState.characterMode === 1) {
+                wrongOptions = cyrillicData
+                    .filter(l => l.cyrillic !== gameState.currentLetter.cyrillic)
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 3)
+                    .map(l => l.latin);
+            } else {
+                wrongOptions = generateWrongCombinations(gameState.currentLetter, gameState.characterMode, availableLetters)
+                    .map(combo => combo.latin);
+            }
+            
+            const options = [gameState.currentLetter.latin, ...wrongOptions]
+                .sort(() => Math.random() - 0.5);
+            
+            gameState.currentOptions = options;
+            
+            options.forEach(option => {
+                const btnWrapper = document.createElement('div');
+                btnWrapper.style.position = 'relative';
+                
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = option;
+                
+                if (gameState.characterMode > 1) {
+                    btn.style.fontSize = '1.2em';
+                    btn.style.padding = '12px 20px';
+                    btn.style.minWidth = '80px';
+                }
+                
+                let letterData;
+                if (gameState.characterMode === 1) {
+                    letterData = cyrillicData.find(l => l.latin === option);
+                } else {
+                    if (option === gameState.currentLetter.latin) {
+                        letterData = gameState.currentLetter;
+                    } else {
+                        letterData = {
+                            cyrillic: option,
+                            latin: option,
+                            simple: option.toLowerCase().replace(/([a-z])([a-z])/g, '$1 $2'),
+                            phonetic: 'combination'
+                        };
+                    }
+                }
+                
+                btn.onclick = (e) => {
+                    if (gameState.isTransitioning) return;
+                    
+                    if (!isPlayingAudio && letterData) {
+                        playNaturalSound(letterData);
+                        btn.classList.add('playing');
+                        setTimeout(() => btn.classList.remove('playing'), 600);
+                        setTimeout(() => checkAnswer(option), 600);
+                    } else {
+                        checkAnswer(option);
+                    }
+                };
+                
+                const hint = document.createElement('div');
+                hint.className = 'sound-hint';
+                hint.textContent = letterData ? ` ${letterData.simple}` : '';
+                
+                btnWrapper.appendChild(btn);
+                btnWrapper.appendChild(hint);
+                container.appendChild(btnWrapper);
+            });
+        }
+
+        // Keyboard input handler
+        function handleKeyboardInput(event) {
+            if (!gameState.isPlaying || gameState.isTransitioning || !gameState.currentOptions.length) {
+                return;
+            }
+            
+            const keyPressed = event.key.toUpperCase();
+            
+            const matchingOption = gameState.currentOptions.find(option => {
+                if (option.length > 1) {
+                    return option === keyPressed || option.startsWith(keyPressed);
+                }
+                return option === keyPressed;
+            });
+            
+            if (matchingOption) {
+                const buttons = document.querySelectorAll('.answer-btn');
+                buttons.forEach(btn => {
+                    if (btn.textContent === matchingOption) {
+                        btn.classList.add('playing');
+                        setTimeout(() => btn.classList.remove('playing'), 600);
+                        
+                        const letterData = cyrillicData.find(l => l.latin === matchingOption);
+                        if (letterData && !isPlayingAudio) {
+                            playNaturalSound(letterData);
+                            setTimeout(() => checkAnswer(matchingOption), 600);
+                        } else {
+                            checkAnswer(matchingOption);
+                        }
+                    }
+                });
+            }
+        }
+
+        function checkAnswer(answer) {
+            const asteroid = document.querySelector('.asteroid');
+            if (!asteroid || gameState.isTransitioning) {
+                console.log('checkAnswer blocked: asteroid=', !!asteroid, 'isTransitioning=', gameState.isTransitioning);
+                return;
+            }
+            
+            console.log('Processing answer:', answer, 'correct:', gameState.currentLetter.latin);
+            gameState.isTransitioning = true;
+            
+            if (currentAnimationFrame) {
+                cancelAnimationFrame(currentAnimationFrame);
+                currentAnimationFrame = null;
+            }
+
+            document.querySelectorAll('.answer-btn').forEach(btn => btn.disabled = true);
+            
+            if (answer === gameState.currentLetter.latin) {
+                const basePoints = 10;
+                const modeMultiplier = gameState.characterMode;
+                const streakBonus = gameState.streak + 1;
+                const points = basePoints * modeMultiplier * streakBonus;
+                
+                gameState.score += points;
+                gameState.streak++;
+                gameState.correctAnswers++;
+                gameState.lettersLearned.add(gameState.currentLetter.cyrillic);
+                
+                asteroid.classList.add('correct');
+                const rect = asteroid.getBoundingClientRect();
+                createParticles(rect.left + rect.width/2, rect.top + rect.height/2, '#00ff00');
+                
+                const modeText = gameState.characterMode === 1 ? 'letter' : gameState.characterMode + '-char combo';
+                showMessage(`Correct ${modeText}! +${points} points`, '#00ff00');
+                
+                const unlockedNewMode = checkModeUnlocks();
+                if (unlockedNewMode) {
+                    updateModeDisplay();
+                }
+                
+                if (gameState.correctAnswers % 10 === 0) {
+                    gameState.level++;
+                    showMessage('Level Up! Level ' + gameState.level, '#00ffff');
+                }
+                
+                updateStats();
+                updateProgress();
+                updateDisplays();
+                
+                setTimeout(() => {
+                    asteroid.remove();
+                    document.querySelectorAll('.answer-btn').forEach(btn => btn.disabled = false);
+                    gameState.isTransitioning = false;
+                    console.log('Starting next round after correct answer');
+                    nextRound();
+                }, 800);
+            } else {
+                gameState.lives--;
+                gameState.streak = 0;
+                asteroid.classList.add('wrong');
+                
+                const modeText = gameState.characterMode === 1 ? 'letter' : gameState.characterMode + '-char combo';
+                showMessage(`Wrong ${modeText}! ${gameState.currentLetter.cyrillic} = ${gameState.currentLetter.latin}`, '#ff0000');
+                
+                updateStats();
+                updateDisplays();
+                
+                setTimeout(() => {
+                    asteroid.classList.remove('wrong');
+                    document.querySelectorAll('.answer-btn').forEach(btn => btn.disabled = false);
+
+                    if (gameState.lives <= 0) {
+                        endGame();
+                    } else {
+                        asteroid.remove();
+                        gameState.isTransitioning = false;
+                        console.log('Starting next round after wrong answer');
+                        nextRound();
+                    }
+                }, 800);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('lives').textContent = gameState.lives;
+            document.getElementById('streak').textContent = gameState.streak;
+            document.getElementById('level').textContent = gameState.level;
+        }
+
+        function updateProgress() {
+            const progress = (gameState.lettersLearned.size / cyrillicData.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function showGameOverModal(title, message) {
+            const modal = document.getElementById('gameOverModal');
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            modal.style.display = 'flex';
+        }
+
+        function hideGameOverModal() {
+            document.getElementById('gameOverModal').style.display = 'none';
+        }
+
+        document.getElementById('modalPlayAgain').onclick = () => {
+            hideGameOverModal();
+            startGame();
+        };
+
+        document.getElementById('modalBackToMenu').onclick = () => {
+            hideGameOverModal();
+            showMenu();
+        };
+
+        function endGame() {
+            gameState.isPlaying = false;
+            
+            if (currentAnimationFrame) {
+                cancelAnimationFrame(currentAnimationFrame);
+                currentAnimationFrame = null;
+            }
+            stopCurrentAudio();
+            
+            document.querySelectorAll('.asteroid').forEach(a => a.remove());
+            
+            const percentage = Math.round((gameState.lettersLearned.size / cyrillicData.length) * 100);
+            
+            showGameOverModal(
+                'Game Over!',
+                `Final Score: ${gameState.score}\nLetters Learned: ${gameState.lettersLearned.size}/${cyrillicData.length} (${percentage}%)`
+            );
+        }
+
+        // Safety function to reset transition state if stuck
+        function resetTransitionState() {
+            if (gameState.isTransitioning) {
+                console.log('Resetting stuck transition state');
+                gameState.isTransitioning = false;
+                document.querySelectorAll('.answer-btn').forEach(btn => btn.disabled = false);
+            }
+        }
+
+        setInterval(() => {
+            if (gameState.isPlaying && gameState.isTransitioning) {
+                resetTransitionState();
+            }
+        }, 3000);
+
+        // Initialize game with Web Speech API
+        createStarfield();
+        
+        console.log('🎮 Initializing Cyrillic Space Defense...');
+        
+        gameState.speed = 'normal';
+        
+        const speechAvailable = initializeWebSpeech();
+        if (speechAvailable) {
+            console.log('Web Speech API ready');
+            const indicator = document.getElementById('soundIndicator');
+            indicator.textContent = '🎵 Voice Ready!';
+            indicator.classList.add('active');
+            setTimeout(() => indicator.classList.remove('active'), 1500);
+        } else {
+            console.warn('No speech support, visual mode only');
+            const indicator = document.getElementById('soundIndicator');
+            indicator.textContent = '📖 Visual Mode';
+        }
+        
+        document.addEventListener('keydown', handleKeyboardInput);
+        
+        const keyboardHint = document.createElement('div');
+        keyboardHint.style.position = 'fixed';
+        keyboardHint.style.bottom = '20px';
+        keyboardHint.style.left = '50%';
+        keyboardHint.style.transform = 'translateX(-50%)';
+        keyboardHint.style.background = 'rgba(0, 255, 255, 0.1)';
+        keyboardHint.style.border = '1px solid #00ffff';
+        keyboardHint.style.borderRadius = '10px';
+        keyboardHint.style.padding = '8px 15px';
+        keyboardHint.style.fontSize = '0.9em';
+        keyboardHint.style.color = '#00ffff';
+        keyboardHint.style.zIndex = '15';
+        keyboardHint.style.display = 'none';
+        keyboardHint.textContent = ' Type the answer or click buttons';
+        keyboardHint.id = 'keyboardHint';
+        document.body.appendChild(keyboardHint);
+        
+        const gameObserver = new MutationObserver(() => {
+            const gameScreen = document.getElementById('gameScreen');
+            if (gameScreen.classList.contains('active')) {
+                keyboardHint.style.display = 'block';
+            } else {
+                keyboardHint.style.display = 'none';
+            }
+        });
+        
+        gameObserver.observe(document.getElementById('gameScreen'), {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+
+        console.log('Game loaded successfully!');
+        console.log('Keyboard input supported');
+        console.log('Web Speech API ready');
+        console.log('Progressive character combinations available');
+        console.log('Variable speed controls ready');
+    </script>
+</body>
+</html>
